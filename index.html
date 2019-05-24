@@ -1,0 +1,849 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <title>Drupal 8 storages overview</title>
+
+  <meta name="description"
+        content="Overview of the main ways to store data in Drupal 8 depending on data and needs. A detailed description of each way and examples of how to work with storages.">
+  <meta name="author" content="Roman Hryshkanych">
+
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style"
+        content="black-translucent"/>
+
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+  <link rel="stylesheet" href="css/reset.css">
+  <link rel="stylesheet" href="css/reveal.css">
+  <link rel="stylesheet" href="css/theme/league.css" id="theme">
+  <link rel="stylesheet" href="css/presentation.css">
+
+
+
+
+  <!-- Theme used for syntax highlighting of code -->
+  <link rel="stylesheet" href="lib/css/monokai.css">
+
+  <!-- Printing and PDF exports -->
+  <script>
+    var link = document.createElement( 'link' );
+    link.rel = 'stylesheet';
+    link.type = 'text/css';
+    link.href = window.location.search.match( /print-pdf/gi ) ? 'css/print/pdf.css' : 'css/print/paper.css';
+    document.getElementsByTagName( 'head' )[0].appendChild( link );
+  </script>
+
+  <!--[if lt IE 9]>
+  <script src="lib/js/html5shiv.js"></script>
+  <![endif]-->
+</head>
+
+<body>
+
+<div class="reveal">
+  <div class="slides">
+    <section id="title" data-background="images/drupal-background.jpg" data-background-size="cover">
+      <h1>Drupal 8<br>
+        <small>storages overview</small>
+      </h1>
+      <h3>Where better to store our data</h3>
+    </section>
+
+    <section id="author">
+      <div class="author-photo">
+        <img src="images/slide_author/author.jpg" width="200">
+      </div>
+      <div class="author-info">
+        <h2>About me</h2>
+        <h3 class="author-name">Roman Hryshkanych</h3>
+        <p class="author-position">Software Engineer at EPAM Systems</p>
+        <p class="author-description">
+          2,5 years in the IT industry and Drupal.<br>
+          I`m perfectionist, so I prefer to do my work
+          qualitatively and I enjoy my work.
+        </p>
+        <div class="author-social">
+          <div class="drupal"><a href="https://www.drupal.org/u/romixua" target="_blank">drupal.org/u/romixua</a></div>
+          <div class="github"><a href="https://github.com/romixua" target="_blank">github.com/romixua</a></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="idea">
+      <h2>Presentation idea</h2>
+      <pre><code class="hljs php" data-trim data-line-numbers="5,10,13" style="font-size: 17px;">
+/**
+ * Implements hook_cron().
+ */
+function module_cron() {
+  $config = \Drupal::configFactory()->getEditable('module_widget.settings');
+  // Default to a daily interval.
+  $interval = $config->get('interval');
+  // We usually don't want to act every time cron runs (which could be every
+  // minute) so keep a time for the next run in a variable.
+  if (time() >= $config->get('next_execution')) {
+    // ...
+    // Set the next time this hook_cron should be invoked.
+    $config->set('next_execution', time() + $interval)->save();
+  }
+}
+      </code></pre>
+    </section>
+
+    <section id="content">
+      <h2>Content entity</h2>
+      <p>
+        Content in Drupal 8 means the Entity API. Drupal Entities are much rigidly structured. There are three layers to the Entity API, conceptually:
+      </p>
+      <ul>
+        <li class="fragment">Entity type</li>
+        <li class="fragment">Entity bundle</li>
+        <li class="fragment">Field</li>
+      </ul>
+    </section>
+
+    <section>
+      <section id="config">
+        <h2>Configuration</h2>
+        <p>The Configuration system replaces the variables table,
+          the features module, half of the ctools module suite,
+          and the myriad custom tables that various modules
+          defined in previous versions with a single, coherent,
+          robust way to store, manage, and deploy administrator-
+          provided configuration.
+          All configs stored in “config” database table and can be
+          exported into (imported from) YML files.
+          According to the best practice config better name:
+          module_name.config_name</p>
+      </section>
+      <section id="config-services">
+        <h2>Config service</h2>
+        <pre><code class="hljs yml" data-trim data-line-numbers="1-99" style="font-size: 17px;">
+services:
+  config.factory:
+    class: Drupal\Core\Config\ConfigFactory
+    tags:
+      - { name: event_subscriber }
+    arguments: ['@config.storage', '@event_dispatcher', '@config.typed']
+  config.storage:
+    class: Drupal\Core\Config\CachedStorage
+    arguments: ['@config.storage.active', '@cache.config']
+  config.storage.active:
+    class: Drupal\Core\Config\DatabaseStorage
+    arguments: ['@database', 'config']
+    public: false
+    tags:
+      - { name: backend_overridable }
+        </code></pre>
+      </section>
+      <section id="config-factory">
+        <h2>Config factory</h2>
+        <span>Drupal\Core\Config\ConfigFactoryInterface</span>
+        <table style="font-size: 20px;">
+          <thead>
+          <tr>
+            <td>Name</td>
+            <td>Description</td>
+          </tr>
+          </thead>
+          <tbody>
+          <tr>
+            <td>get($name)</td>
+            <td>Drupal\Core\Config\ImmutableConfig</td>
+          </tr>
+          <tr>
+            <td>getEditable($name)</td>
+            <td>Drupal\Core\Config\Config</td>
+          </tr>
+          <tr>
+            <td>loadMultiple($names)</td>
+            <td>Drupal\Core\Config\ImmutableConfig[]</td>
+          </tr>
+          <tr>
+            <td>rename($old_name, $new_name)</td>
+            <td>Rename configs</td>
+          </tr>
+          <tr>
+            <td>listAll($prefix = '')</td>
+            <td>Return array of config names</td>
+          </tr>
+          <tr>
+            <td>addOverride($config_factory_override)</td>
+            <td>Adds config factory override services</td>
+          </tr>
+          </tbody>
+        </table>
+
+      </section>
+      <section id="config-object">
+        <h2>Config object</h2>
+        <span>Drupal\Core\Config\Config (ImmutableConfig)</span>
+        <table style="font-size: 20px;">
+          <thead>
+          <tr>
+            <td><b>Name</b></td>
+            <td><b>Description</b></td>
+          </tr>
+          </thead>
+          <tbody>
+          <tr>
+            <td>get($key = '')</td>
+            <td>Gets data from this configuration object</td>
+          </tr>
+          <tr>
+            <td>set($key, $value)</td>
+            <td>Sets a value in this configuration object (Exception in immutable)</td>
+          </tr>
+          <tr>
+            <td>setData(array $data)</td>
+            <td>Replaces the data of this configuration object</td>
+          </tr>
+          <tr>
+            <td>merge(array $data_to_merge)</td>
+            <td>Merges data into a configuration object.</td>
+          </tr>
+          <tr>
+            <td>clear($key)</td>
+            <td>Unsets a value in this configuration object (Exception in immutable)</td>
+          </tr>
+          <tr>
+            <td>delete()</td>
+            <td>Deletes the configuration object (Exception in immutable)</td>
+          </tr>
+          <tr>
+            <td>save()</td>
+            <td>Saves the configuration object (Exception in immutable)</td>
+          </tr>
+          <tr>
+            <td>getRawData()</td>
+            <td>Gets the raw data without overrides</td>
+          </tr>
+          <tr>
+            <td>getCacheTags()</td>
+            <td>The cache tags associated with this config</td>
+          </tr>
+          </tbody>
+        </table>
+
+      </section>
+      <section id="config-example">
+        <h2>Config example</h2>
+        <pre><code class="hljs php" data-trim data-line-numbers="1-99" style="font-size: 17px;" contenteditable>
+/** @var \Drupal\Core\Config\ConfigFactoryInterface $config_factory */
+$config_factory = \Drupal::service('config.factory');
+$config_editable = $config_factory->getEditable('my_module.test');
+$config_editable->set('key_1', 'value_1');
+$config_editable->save();
+$value = $config_editable->get('key_1');
+
+$config = $config_factory->get('my_module.test');
+$value_1 = $config->get('key_1');
+      </code></pre>
+      </section>
+      <section id="config-database">
+        <h2>Config in database</h2>
+        <p>Data stored in database table ‘config’</p>
+        <table>
+          <thead>
+          <tr>
+            <td>collection</td>
+            <td>name</td>
+            <td>data</td>
+          </tr>
+          </thead>
+          <tbody>
+          <tr>
+            <td></td>
+            <td>my_module.test</td>
+            <td>[BLOB - 32 B]</td>
+          </tr>
+          <tr>
+            <td></td>
+            <td>core.extension</td>
+            <td>[BLOB - 1.2 KB]</td>
+          </tr>
+          <tr>
+            <td></td>
+            <td>user.settings</td>
+            <td>[BLOB - 604 B]</td>
+          </tr>
+          <tr>
+            <td>language.uk</td>
+            <td>user.settings</td>
+            <td>[BLOB - 42 B]</td>
+          </tr>
+          </tbody>
+        </table>
+
+      </section>
+    </section>
+
+    <section>
+      <section id="keyvalue">
+        <h2>Key value</h2>
+        <p>Key value – is a storage, that consist from collections,
+          and can store values of any type, as they will be
+          serialized and unserialized automatically (However, not
+          all object types can be serialized).</p>
+      </section>
+      <section id="keyvalue-services">
+        <h2>Key value service</h2>
+        <pre><code class="hljs yml" data-trim data-line-numbers="1-99" style="font-size: 17px;">
+parameters:
+  factory.keyvalue:
+    default: keyvalue.database
+services:
+  keyvalue:
+    class: Drupal\Core\KeyValueStore\KeyValueFactory
+    arguments: ['@service_container', '%factory.keyvalue%']
+  keyvalue.database:
+    class: Drupal\Core\KeyValueStore\KeyValueDatabaseFactory
+    arguments: ['@serialization.phpserialize', '@database']
+        </code></pre>
+      </section>
+      <section id="keyvalue-factory">
+        <h2>Key value factory</h2>
+        <span>Drupal\Core\KeyValueStore\KeyValueFactoryInterface</span>
+        <table style="font-size: 25px;">
+          <thead>
+          <tr>
+            <td>Name</td>
+            <td>Description</td>
+          </tr>
+          </thead>
+          <tbody>
+          <tr>
+            <td>get($collection)</td>
+            <td>Drupal\Core\KeyValueStore\KeyValueStoreInterface</td>
+          </tr>
+        </table>
+        <p>All key value factories consist of gust one method –
+          get(), which returns collection object.</p>
+
+      </section>
+      <section id="keyvalue-storage">
+        <h2>Key value storage</h2>
+        <span>Drupal\Core\KeyValueStore\KeyValueStoreInterface</span>
+        <table style="font-size: 20px;">
+          <thead>
+          <tr>
+            <td><b>Name</b></td>
+            <td><b>Description</b></td>
+          </tr>
+          </thead>
+          <tbody>
+          <tr>
+            <td>getCollectionName()</td>
+            <td>Returns the name of this collection</td>
+          </tr>
+          <tr>
+            <td>has($key)</td>
+            <td>Check if key exists in the collection</td>
+          </tr>
+          <tr>
+            <td>get($key)</td>
+            <td>Return collection item value</td>
+          </tr>
+          <tr>
+            <td>getMultiple($keys)</td>
+            <td>Return collection multiple item values</td>
+          </tr>
+          <tr>
+            <td>getAll()</td>
+            <td>Returns all stored key/value pairs in the collection</td>
+          </tr>
+          <tr>
+            <td>set($key, $value)</td>
+            <td>Saves a value for a given key</td>
+          </tr>
+          <tr>
+            <td>setIfNotExists($key, $value)</td>
+            <td>Saves a value for a given key if it does not exist yet</td>
+          </tr>
+          <tr>
+            <td>setMultiple($data)</td>
+            <td>Saves key/value pairs.</td>
+          </tr>
+          <tr>
+            <td>rename($key, $new_key)</td>
+            <td>Renames a key</td>
+          </tr>
+          <tr>
+            <td>delete($key)</td>
+            <td>Deletes an item from the key/value store</td>
+          </tr>
+          <tr>
+            <td>deleteMultiple($keys)</td>
+            <td>Deletes multiple items from the key/value store</td>
+          </tr>
+          <tr>
+            <td>deleteAll()</td>
+            <td>Deletes all items from the key/value store</td>
+          </tr>
+          </tbody>
+        </table>
+
+      </section>
+      <section id="keyvalue-example">
+        <h2>Key value example</h2>
+        <pre><code class="hljs php" data-trim data-line-numbers="1-99" style="font-size: 17px;">
+/** @var \Drupal\Core\KeyValueStore\KeyValueFactoryInterface $key_value */
+$key_value = \Drupal::service('keyvalue');
+/** @var \Drupal\Core\KeyValueStore\KeyValueStoreInterface $test_collection */
+$test_collection = $key_value->get('test_collection');
+$test_collection->set('key_1', 10);
+$value = $test_collection->get('key_1');
+$values = $test_collection->getAll();
+$test_collection->delete('key_1');
+      </code></pre>
+      </section>
+      <section id="keyvalue-database">
+        <h2>Key value in database</h2>
+        <p>Data stored in database table ‘key_value’</p>
+        <table>
+          <thead>
+          <tr>
+            <td>collection</td>
+            <td>name</td>
+            <td>data</td>
+          </tr>
+          </thead>
+          <tbody>
+          <tr>
+            <td>system.schema</td>
+            <td>taxonomy</td>
+            <td>[BLOB - 7 B]</td>
+          </tr>
+          <tr>
+            <td>system.schema</td>
+            <td>text</td>
+            <td>[BLOB - 7 B]</td>
+          </tr>
+          <tr>
+            <td>system.schema</td>
+            <td>user</td>
+            <td>[BLOB - 11 B]</td>
+          </tr>
+          <tr>
+            <td>state</td>
+            <td>system.private_key</td>
+            <td>[BLOB - 82 B]</td>
+          </tr>
+          <tr>
+            <td>state</td>
+            <td>system.cron_last</td>
+            <td>[BLOB - 13 B]</td>
+          </tr>
+          </tbody>
+        </table>
+
+      </section>
+    </section>
+
+    <section>
+      <section id="keyvalue-expirable">
+        <h2>Key value expirable</h2>
+        <p>Key value expirable – is a similar to key value storage but values will get cleared, when key value age is over.</p>
+      </section>
+      <section id="keyvalue-expirable-services">
+        <h2>Key value expirable service</h2>
+        <pre><code class="hljs yml" data-trim data-line-numbers="1-99" style="font-size: 17px;">
+parameters:
+  factory.keyvalue.expirable:
+    default: keyvalue.expirable.database
+services:
+  keyvalue.expirable:
+    class: Drupal\Core\KeyValueStore\KeyValueExpirableFactory
+    arguments: ['@service_container', '%factory.keyvalue.expirable%']
+  keyvalue.expirable.database:
+    class: Drupal\Core\KeyValueStore\KeyValueDatabaseExpirableFactory
+    arguments: ['@serialization.phpserialize', '@database']
+        </code></pre>
+      </section>
+      <section id="keyvalue-expirable-storage">
+        <h2>Key value expirable storage</h2>
+        <p style="font-size: 30px;">Key value expirable factory also have just one get($collection) function, which returns Key value expirable storage</p>
+        <span style="font-size: 34px;">Drupal\Core\KeyValueStore\KeyValueStoreExpirableInterface</span>
+        <p style="font-size: 30px;">Key value store expirable additional functions</p>
+        <table style="font-size: 20px;">
+          <thead>
+          <tr>
+            <td><b>Name</b></td>
+            <td><b>Description</b></td>
+          </tr>
+          </thead>
+          <tbody>
+          <tr>
+            <td>setWithExpire($key, $value, $expire)</td>
+            <td>Saves a value for a given key with a time to live</td>
+          </tr>
+          <tr>
+            <td>setWithExpireIfNotExists($key, $value, $expire)</td>
+            <td>Sets a value with a time to live if it does not yet exist</td>
+          </tr>
+          <tr>
+            <td>setMultipleWithExpire($data, $expire)</td>
+            <td>Saves an array of values with a time to live</td>
+          </tr>
+          </tbody>
+        </table>
+        <p style="font-size: 30px;">* $expire - the time to live for items, in seconds</p>
+
+      </section>
+      <section id="keyvalue-expirable-example">
+        <h2>Key value expirable example</h2>
+        <pre><code class="hljs php" data-trim data-line-numbers="1-99" style="font-size: 15.5px;">
+/** @var \Drupal\Core\KeyValueStore\KeyValueExpirableFactoryInterface $key_value */
+$key_value = \Drupal::service('keyvalue.expirable');
+/** @var \Drupal\Core\KeyValueStore\KeyValueExpirableStoreInterface $test_collection */
+$test_collection = $key_value->get('test_collection');
+$test_collection->set('key_1', 10);
+$test_collection->setWithExpire('key_2', 15, 400);
+$value = $test_collection->get('key_1');
+$values = $test_collection->getAll();
+$test_collection->delete('key_1');
+      </code></pre>
+      </section>
+      <section id="keyvalue-expirable-database">
+        <h2>Key value expirable in database</h2>
+        <p>Data stored in database table ‘key_value_expirable’</p>
+        <table style="font-size: 34px;">
+          <thead>
+          <tr>
+            <td>collection</td>
+            <td>name</td>
+            <td>data</td>
+            <td>expire</td>
+          </tr>
+          </thead>
+          <tbody>
+          <tr>
+            <td>test_collection</td>
+            <td>key_1</td>
+            <td>[BLOB - 5 B]</td>
+            <td>2147483647</td>
+          <tr>
+            <td>test_collection</td>
+            <td>key_2</td>
+            <td>[BLOB - 5 B]</td>
+            <td>1548746620</td>
+          </tr>
+          </tbody>
+        </table>
+
+      </section>
+    </section>
+
+    <section>
+      <section id="state">
+        <h2>State</h2>
+        <p>
+          Storage for storing information about the system's
+          state, based on key value collection ‘state’.
+          In state are stored: last crone execution time, site install
+          time, system private key, etc.
+          State storage also work in pair with bootstrap cache,
+          that improves performance and prevent a huge number
+          of database queries.
+          Cache will be created after value get, and will be
+          invalidated after value set.
+          Best practice for keys name is – module_name.key_name
+        </p>
+      </section>
+      <section id="state-service">
+        <h2>State service</h2>
+        <pre><code class="hljs yml" data-trim data-line-numbers="1-99" style="font-size: 17px;">
+services:
+  state:
+    class: Drupal\Core\State\State
+    arguments: ['@keyvalue']
+        </code></pre>
+      </section>
+      <section id="state-storage">
+        <h2>State storage</h2>
+        <span style="font-size: 34px;">Drupal\Core\State\StateInterface</span>
+        <table style="font-size: 24px;">
+          <thead>
+          <tr>
+            <td><b>Name</b></td>
+            <td><b>Description</b></td>
+          </tr>
+          </thead>
+          <tbody>
+          <tr>
+            <td>get($key)</td>
+            <td>Returns the stored value for a given key</td>
+          </tr>
+          <tr>
+            <td>getMultiple($keys)</td>
+            <td>Returns the stored key/value pairs for a given set of keys</td>
+          </tr>
+          <tr>
+            <td>set($key, $value)</td>
+            <td>Saves a value for a given key</td>
+          </tr>
+          <tr>
+            <td>setMultiple($data)</td>
+            <td>Saves key/value pairs</td>
+          </tr>
+          <tr>
+            <td>delete($key)</td>
+            <td>Deletes an item</td>
+          </tr>
+          <tr>
+            <td>deleteMultiple($keys)</td>
+            <td>Deletes multiple items</td>
+          </tr>
+          <tr>
+            <td>resetCache()</td>
+            <td>Resets the static cache</td>
+          </tr>
+          </tbody>
+        </table>
+
+      </section>
+      <section id="state-example">
+        <h2>State example</h2>
+        <pre><code class="hljs php" data-trim data-line-numbers="1-99" style="font-size: 18px;">
+/** @var \Drupal\Core\State\StateInterface $state */
+$state = \Drupal::service('state');
+$state->set('my_module.key_1', 'value_1');
+$value = $state->get('my_module.key_1');
+$state->delete('my_module.key_1');
+      </code></pre>
+      </section>
+    </section>
+
+    <section>
+      <section id="private-tempstore">
+        <h2>User private tempstore</h2>
+        <p>
+          Store based on
+          key value expirable storage. For one key value is
+          individual for each user. The mostly uses for multiple
+          steps forms, previews before saving and confirmation
+          forms.
+        </p>
+      </section>
+      <section id="private-tempstore-service">
+        <h2>User private tempstore service</h2>
+        <pre><code class="hljs yml" data-trim data-line-numbers="1-99" style="font-size: 17px;">
+parameters:
+  tempstore.expire: 604800 # 7 days
+services:
+  tempstore.private:
+    class: Drupal\Core\TempStore\PrivateTempStoreFactory
+    arguments: ['@keyvalue.expirable', '@lock', '@current_user', '@request_stack', '%tempstore.expire%']
+    tags:
+      - { name: backend_overridable }
+        </code></pre>
+      </section>
+      <section id="private-tempstore-object">
+        <h2>User private tempstore</h2>
+        <span style="font-size: 34px;">Drupal\Core\TempStore\PrivateTempStoreFactory</span>
+        <p style="font-size: 30px;">User private tempstore factory have just one get($collection) function, which returns private temp store</p>
+        <span style="font-size: 34px;">Drupal\Core\TempStore\PrivateTempStore</span>
+        <table style="font-size: 24px;">
+          <thead>
+          <tr>
+            <td><b>Name</b></td>
+            <td><b>Description</b></td>
+          </tr>
+          </thead>
+          <tbody>
+          <tr>
+            <td>get($key)</td>
+            <td>Retrieves a value from this PrivateTempStore for a given key</td>
+          </tr>
+          <tr>
+            <td>set($key, $value)</td>
+            <td>Stores a particular key/value pair in this PrivateTempStore.</td>
+          </tr>
+          <tr>
+            <td>getMetadata($key)</td>
+            <td>Returns the metadata associated with a particular key/value pair</td>
+          </tr>
+          <tr>
+            <td>delete($key)</td>
+            <td>Deletes data from the store for a given key</td>
+          </tr>
+          </tbody>
+        </table>
+
+      </section>
+      <section id="private-tempstore-example">
+        <h2>User private tempstore example</h2>
+        <pre><code class="hljs php" data-trim data-line-numbers="1-99" style="font-size: 15.5px;">
+/** @var \Drupal\Core\TempStore\PrivateTempStoreFactory $temp_store */
+$temp_store = \Drupal::service('tempstore.private');
+/** @var \Drupal\Core\TempStore\PrivateTempStore $test_collection */
+$test_collection = $temp_store->get('test_collection');
+$node = Node::create([
+  'type' => 'article',
+  'title' => 'Article Title',
+]);
+$test_collection->set('article', $node);
+
+$node = $test_collection->get('article');
+$node->save();
+$test_collection->delete('article');
+      </code></pre>
+      </section>
+      <section id="private-tempstore-database">
+        <h2>User private tempstore in database</h2>
+        <p>Data stored in database table ‘key_value_expirable’</p>
+        <table style="font-size: 23px;">
+          <thead>
+          <tr>
+            <td>collection</td>
+            <td>name</td>
+            <td>data</td>
+            <td>expire</td>
+          </tr>
+          </thead>
+          <tbody>
+          <tr>
+            <td>tempstore.private.test_collection</td>
+            <td>1:article</td>
+            <td>[BLOB - 2.5 KB]</td>
+            <td>1559266848</td>
+          <tr>
+            <td>tempstore.private.test_collection</td>
+            <td>w7bNdnm0Us:article</td>
+            <td>[BLOB - 2.5 KB]</td>
+            <td>1559267088</td>
+          </tr>
+          </tbody>
+        </table>
+        <img src="images/slide_temstore/private-temstore-data.png" width="750">
+      </section>
+    </section>
+
+    <section>
+      <section id="shared-tempstore">
+        <h2>User shared tempstore</h2>
+        <p>
+          As a user private temp store also based on key value expirable storage.
+          The value is one for all user, but also records key value pair owner.
+          he mostly uses view, page manager, search index fields changes before saving.
+        </p>
+      </section>
+      <section id="shared-tempstore-service">
+        <h2>User shared tempstore service</h2>
+        <pre><code class="hljs yml" data-trim data-line-numbers="1-99" style="font-size: 17px;">
+parameters:
+  tempstore.expire: 604800 # 7 days
+services:
+  tempstore.shared:
+    class: Drupal\Core\TempStore\SharedTempStoreFactory
+    arguments: ['@keyvalue.expirable', '@lock', '@request_stack', '%tempstore.expire%']
+    tags:
+      - { name: backend_overridable }
+        </code></pre>
+      </section>
+      <section id="shared-tempstore-object">
+        <h2>User shared tempstore</h2>
+        <span style="font-size: 34px;">Drupal\Core\TempStore\SharedTempStoreFactory</span>
+        <p style="font-size: 30px;">User shared tempstore factory have just one get($collection) function, which returns shared temp store</p>
+        <span style="font-size: 34px;">Drupal\Core\TempStore\SharedTempStore</span>
+        <p style="font-size: 30px;">Shared temp store additional functions</p>
+        <table style="font-size: 20px;">
+          <thead>
+          <tr>
+            <td><b>Name</b></td>
+            <td><b>Description</b></td>
+          </tr>
+          </thead>
+          <tbody>
+          <tr>
+            <td>getIfOwner($key)</td>
+            <td>Retrieves a value from this SharedTempStore if the value is owned by this user</td>
+          </tr>
+          <tr>
+            <td>setIfOwner($key, $value)</td>
+            <td>Set a value to SharedTempStore if it does not exist yet or is owned by this user</td>
+          </tr>
+          </tbody>
+        </table>
+
+      </section>
+      <section id="shared-tempstore-example">
+        <h2>User shared tempstore example</h2>
+        <pre><code class="hljs php" data-trim data-line-numbers="1-99" style="font-size: 15.5px;">
+/** @var \Drupal\Core\TempStore\SharedTempStoreFactory $temp_store */
+$temp_store = \Drupal::service('tempstore.shared');
+/** @var \Drupal\Core\TempStore\SharedTempStore $test_collection */
+$test_collection = $temp_store->get('test_collection');
+$data = [
+  'key_1' => 'value_1',
+  'key_2' => 'value_2',
+];
+$test_collection->set('options', $data);
+
+$options = $test_collection->get('options');
+      </code></pre>
+      </section>
+      <section id="shared-tempstore-database">
+        <h2>User shared tempstore in database</h2>
+        <p>Data stored in database table ‘key_value_expirable’</p>
+        <table style="font-size: 25px;">
+          <thead>
+          <tr>
+            <td>collection</td>
+            <td>name</td>
+            <td>data</td>
+            <td>expire</td>
+          </tr>
+          </thead>
+          <tbody>
+          <tr>
+            <td>tempstore.shared.test_collection</td>
+            <td>options</td>
+            <td>[BLOB - 135 B]</td>
+            <td>1559279349</td>
+          <tr>
+            <td>tempstore.shared.views</td>
+            <td>news</td>
+            <td>[BLOB - 10.8 KB]</td>
+            <td>1559281791</td>
+          </tr>
+          </tbody>
+        </table>
+      </section>
+    </section>
+
+  </div>
+  <div class="company-logo">
+    <img src="images/epam-logo.png">
+  </div>
+
+</div>
+
+<!--<script src="lib/js/head.min.js"></script>-->
+<script src="js/reveal.js"></script>
+
+<script>
+  Reveal.initialize({
+    controls: true,
+    progress: true,
+    center: true,
+    hash: true,
+
+    transition: 'default',
+
+    dependencies: [
+      { src: 'plugin/markdown/marked.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+      { src: 'plugin/markdown/markdown.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+      { src: 'plugin/highlight/highlight.js', async: true },
+      { src: 'plugin/search/search.js', async: true },
+      { src: 'plugin/zoom-js/zoom.js', async: true },
+      { src: 'plugin/notes/notes.js', async: true }
+    ]
+  });
+
+</script>
+</body>
+</html>

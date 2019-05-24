@@ -1,0 +1,99 @@
+
+.company-logo {
+  z-index: 10000;
+  position: fixed;
+  bottom: 20px;
+  left: 20px;
+}
+.company-logo img {
+  height: 10vh;
+  width: auto;
+}
+
+#title h1 {
+  color: #ffffff;
+  text-transform: none;
+  font-size: 17.8vh;
+  font-family: Lato;
+  font-weight: bold;
+  display: inline;
+  text-shadow: 0 0 18px rgb(27, 41, 47);
+}
+#title h1 small {
+  text-transform: uppercase;
+  font-size: 6vh;
+  margin-top: 18px;
+}
+#title h3 {
+  text-shadow: 0 0 18px rgb(27, 41, 47);
+}
+
+#author .author-photo {
+  display: inline-block;
+  vertical-align: middle;
+  margin-right: 30px;
+}
+
+#author .author-photo img {
+  width: 300px;
+  border-radius: 50%;
+
+}
+
+#author .author-info {
+  display: inline-block;
+  vertical-align: middle;
+  max-width: 600px;
+}
+
+#author .author-info .author-name {
+  font-size: 50px;
+  font-family: "Lato", sans-serif;
+  font-weight: bold;
+  color: #ff0000;
+}
+
+#author .author-info .author-position {
+  font-weight: bold;
+  color: #59c2d6;
+  font-size: 36px;
+}
+
+#author .author-info .author-description {
+  text-align: left;
+  font-size: 32px;
+}
+#author .author-info .author-social {
+  text-align: left;
+}
+
+#author .author-info .author-social .github::before {
+  content: '';
+  display: inline-block;
+  width: 40px;
+  height: 40px;
+  margin-right: 20px;
+  background-image: url(../images/slide_author/github-icon.png);
+  background-size: contain;
+  background-position: center center;
+  background-repeat: no-repeat;
+  vertical-align: middle;
+}
+
+#author .author-info .author-social .drupal::before {
+  content: '';
+  display: inline-block;
+  width: 40px;
+  height: 40px;
+  margin-right: 20px;
+  background-image: url(../images/slide_author/drupal-icon.png);
+  background-size: contain;
+  background-position: center center;
+  background-repeat: no-repeat;
+  vertical-align: middle;
+}
+
+/* Code formatting fix*/
+.yml .hljs-ln-numbers + .hljs-ln-code .hljs-string:first-child {
+  color: #DDDDDD;
+}
