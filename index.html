@@ -815,6 +815,205 @@ $options = $test_collection->get('options');
       </section>
     </section>
 
+    <section>
+      <section id="cache">
+        <h2>Cache</h2>
+        <p>Uses for storing information which is also stored
+          somewhere else. Caches exist only to speed up data
+          retrieval.</p>
+      </section>
+      <section id="cache-services">
+        <h2>Cache services</h2>
+        <pre><code class="hljs yml" data-trim data-line-numbers="1-99" style="font-size: 16px;">
+services:
+  cache_factory:
+    class: Drupal\Core\Cache\CacheFactory
+    arguments: ['@settings', '%cache_default_bin_backends%']
+    calls:
+      - [setContainer, ['@service_container']]
+  cache.backend.chainedfast:
+    class: Drupal\Core\Cache\ChainedFastBackendFactory
+    arguments: ['@settings']
+    calls:
+      - [setContainer, ['@service_container']]
+  cache.backend.database:
+    class: Drupal\Core\Cache\DatabaseBackendFactory
+    arguments: ['@database', '@cache_tags.invalidator.checksum', '@settings']
+
+  # Cache bins
+  cache.bootstrap:
+    class: Drupal\Core\Cache\CacheBackendInterface
+    tags:
+      - { name: cache.bin, default_backend: cache.backend.chainedfast }
+    factory: cache_factory:get
+    arguments: [bootstrap]
+  cache.config:
+    class: Drupal\Core\Cache\CacheBackendInterface
+    tags:
+      - { name: cache.bin, default_backend: cache.backend.chainedfast }
+    factory: cache_factory:get
+    arguments: [config]
+  cache.default:
+    class: Drupal\Core\Cache\CacheBackendInterface
+    tags:
+      - { name: cache.bin }
+    factory: cache_factory:get
+    arguments: [default]
+  cache.render:
+    class: Drupal\Core\Cache\CacheBackendInterface
+    tags:
+      - { name: cache.bin }
+    factory: cache_factory:get
+    arguments: [render]
+        </code></pre>
+      </section>
+      <section id="cache-factory">
+        <h2>Cache factory</h2>
+        <span>Drupal\Core\Cache\CacheFactoryInterface</span>
+        <table style="font-size: 30px;">
+          <thead>
+          <tr>
+            <td>Name</td>
+            <td>Description</td>
+          </tr>
+          </thead>
+          <tbody>
+          <tr>
+            <td>get($bin)</td>
+            <td>Drupal\Core\Cache\CacheBackendInterface</td>
+          </tr>
+        </table>
+
+      </section>
+      <section id="cache-bin">
+        <h2>Cache bin</h2>
+        <span>Drupal\Core\Cache\CacheBackendInterface</span>
+        <table style="font-size: 20px;">
+          <thead>
+          <tr>
+            <td><b>Name</b></td>
+            <td><b>Description</b></td>
+          </tr>
+          </thead>
+          <tbody>
+          <tr>
+            <td>get($cid)</td>
+            <td>Returns data from the persistent cache</td>
+          </tr>
+          <tr>
+            <td>getMultiple($cids)</td>
+            <td>Returns data from the persistent cache from array of cache IDs</td>
+          </tr>
+          <tr>
+            <td>set($cid, $data, $expire = -1, $tags = [])</td>
+            <td>Stores data in the persistent cache</td>
+          </tr>
+          <tr>
+            <td>setMultiple($items)</td>
+            <td>Store multiple items in the persistent cache</td>
+          </tr>
+          <tr>
+            <td>delete($cid)</td>
+            <td>Deletes an item from the cache</td>
+          </tr>
+          <tr>
+            <td>deleteMultiple($cids)</td>
+            <td>Deletes multiple items from the cache</td>
+          </tr>
+          <tr>
+            <td>deleteAll()</td>
+            <td>Deletes all cache items in a bin</td>
+          </tr>
+          <tr>
+            <td>invalidate($cid)</td>
+            <td>Marks a cache item as invalid</td>
+          </tr>
+          <tr>
+            <td>invalidateMultiple(array $cids)</td>
+            <td>Marks cache items as invalid</td>
+          </tr>
+          <tr>
+            <td>invalidateAll()</td>
+            <td>Marks all cache items as invalid</td>
+          </tr>
+          <tr>
+            <td>garbageCollection()</td>
+            <td>Performs garbage collection on a cache bin</td>
+          </tr>
+          <tr>
+            <td>removeBin()</td>
+            <td>Remove a cache bin</td>
+          </tr>
+          </tbody>
+        </table>
+
+      </section>
+      <section id="cache-example">
+        <h2>cache example</h2>
+        <pre><code class="hljs php" data-trim data-line-numbers="1-99" style="font-size: 17px;">
+/** @var \Drupal\Core\Cache\CacheFactoryInterface $cache_factory */
+$cache_factory = \Drupal::service('cache_factory');
+/** @var \Drupal\Core\Cache\CacheBackendInterface $cache */
+$cache = $cache_factory->get('default');
+$data = [
+  'key_1' => 'value_1',
+  'key_2' => 'value_2',
+];
+$tags = ['node_list', 'user_list'];
+$cache->set('my_module.settings', $data, Cache::PERMANENT, $tags);
+$value = $cache->get('my_module.settings');
+      </code></pre>
+      </section>
+      <section id="cache-database">
+        <h2>Cache bin in database</h2>
+        <p>Data stored in database table ‘cache_[bin name]’</p>
+        <table style="font-size: 19px">
+          <thead>
+          <tr>
+            <td>cid</td>
+            <td>data</td>
+            <td>expire</td>
+            <td>created</td>
+            <td>serialized</td>
+            <td>tags</td>
+            <td>checksum</td>
+          </tr>
+          </thead>
+          <tbody>
+          <tr>
+            <td>my_module.settings</td>
+            <td>[BLOB - 58 B]</td>
+            <td>-1</td>
+            <td>1558697024.380</td>
+            <td>1</td>
+            <td>node_list user_list</td>
+            <td>19</td>
+          </tr>
+          <tr>
+            <td>system.module.info</td>
+            <td>[BLOB - 41.5 kB]</td>
+            <td>-1</td>
+            <td>1558697022.429</td>
+            <td>1</td>
+            <td>node_list user_list</td>
+            <td>0</td>
+          </tr>
+          </tbody>
+        </table>
+        <img src="images/slide_cache/cache-data.png">
+      </section>
+    </section>
+
+    <section id="conclusion">
+      <h2>Conclusion</h2>
+
+    </section>
+
+    <section id="thank">
+      <h2>Thank you for attantion</h2>
+
+    </section>
+
   </div>
   <div class="company-logo">
     <img src="images/epam-logo.png">
