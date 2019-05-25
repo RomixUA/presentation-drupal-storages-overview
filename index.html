@@ -246,7 +246,7 @@ $value_1 = $config->get('key_1');
       <section id="config-database">
         <h2>Config in database</h2>
         <p>Data stored in database table ‘config’</p>
-        <table>
+        <table style="font-size: 30px;">
           <thead>
           <tr>
             <td>collection</td>
@@ -403,7 +403,7 @@ $test_collection->delete('key_1');
       <section id="keyvalue-database">
         <h2>Key value in database</h2>
         <p>Data stored in database table ‘key_value’</p>
-        <table>
+        <table style="font-size: 30px;">
           <thead>
           <tr>
             <td>collection</td>
@@ -1004,14 +1004,117 @@ $value = $cache->get('my_module.settings');
       </section>
     </section>
 
+    <section>
+      <section id="session">
+        <h2>Session</h2>
+        <p>
+          Using 'session' database table, also can store inside different types of data, including ojects. This data alwasy reads and writes durring each requsest.
+        </p>
+      </section>
+      <section id="session-example">
+        <h2>Session example</h2>
+        <pre><code class="hljs php" data-trim data-line-numbers="1-99" style="font-size: 18px;">
+public function storeGroupInput($input, $status) {
+  if (empty($this->options['group_info']['remember'])) {
+    return;
+  }
+  $view_id = $this->storage->id();
+  $display_id = $this->current_display;
+  if (
+    $status === FALSE &&
+    isset($_SESSION['views'][$view_id][$display_id])
+  ) {
+    $session = &$_SESSION['views'][$view_id][$display_id];
+  }
+  if ($status !== FALSE) {
+    if (!isset($_SESSION['views'][$view_id][$display_id])) {
+      $_SESSION['views'][$view_id][$display_id] = [];
+    }
+    $session = &$_SESSION['views'][$view_id][$display_id];
+    $filter_id = $this->options['group_info']['identifier'];
+    $session[$filter_id] = $input[$filter_id];
+  }
+}
+
+public function getExposedInput() {
+  if (empty($this->exposed_input)) {
+    $view_id = $this->storage->id();
+    $display_id = $this->current_display
+    if (
+      empty($this->exposed_input) &&
+      !empty($_SESSION['views'][$view_id][$display_id])
+    ) {
+      $this->exposed_input = $_SESSION['views'][$view_id][$display_id];
+    }
+  }
+
+   return $this->exposed_input;
+}
+      </code></pre>
+      </section>
+      <section id="sessionn-database">
+        <h2>Session in database</h2>
+        <p>Data stored in database table ‘session’</p>
+        <table style="font-size: 19px">
+          <thead>
+          <tr>
+            <td>uid</td>
+            <td>sid</td>
+            <td>hostname</td>
+            <td>timestamp</td>
+            <td>session</td>
+          </tr>
+          </thead>
+          <tbody>
+          <tr>
+            <td>1</td>
+            <td>2abhmLE-98a4wRGPOjf252Eun9KvnucJERjEuMP50XM</td>
+            <td>127.0.0.1</td>
+            <td>1558684777</td>
+            <td>[BLOB - 179 B]</td>
+          </tr>
+          <tr>
+            <td>0</td>
+            <td>tm_ej0wNUjeF9suW0vdwjihXPJcMDah2n37oupb6v-U</td>
+            <td>127.0.0.1</td>
+            <td>1558662288</td>
+            <td>[BLOB - 159 B]</td>
+          </tr>
+          </tbody>
+        </table>
+        <img src="images/slide_session/session-data.png">
+      </section>
+    </section>
+
     <section id="conclusion">
       <h2>Conclusion</h2>
-
+      <ul style="font-size: 26px;">
+        <li>Structured data, which can be created by users, different on each environment and should have ability to search data by different conditions - content entity</li>
+        <li>This data are already stored somewhere, but we need to improve performance during receiving of this data - cache</li>
+        <li>Some system property that should be different on each environment - state</li>
+        <li>Some settings that should be deployed to all environment - configuration</li>
+        <li>Temporary data, that should be accessible by key and individual for each user - private tempstore</li>
+        <li>Permanent data, that should be accessible by key and different on each environment - key value</li>
+      </ul>
     </section>
 
     <section id="thank">
       <h2>Thank you for attantion</h2>
 
+    </section>
+
+    <section id="sources">
+      <h2>Sources</h2>
+      <ul style="font-size: 19px;">
+        <li><a href="https://www.palantir.net/blog/d8ftw-storing-data-drupal-8" target="_blank">https://www.palantir.net/blog/d8ftw-storing-data-drupal-8</a></li>
+        <li><a href="https://www.anubavam.com/blogs/how-store-session-data-drupal-8" target="_blank">https://www.anubavam.com/blogs/how-store-session-data-drupal-8</a></li>
+        <li><a href="https://www.drupal.org/docs/8/api/state-api/overview" target="_blank">https://www.drupal.org/docs/8/api/state-api/overview</a></li>
+        <li><a href="https://www.drupal.org/docs/8/api/configuration-api/configuration-api-overview" target="_blank">https://www.drupal.org/docs/8/api/configuration-api/configuration-api-overview</a></li>
+        <li><a href="https://www.drupal.org/docs/8/api/configuration-api/overview-of-configuration-vs-other-types-of-information" target="_blank">https://www.drupal.org/docs/8/api/configuration-api/overview-of-configuration-vs-other-types-of-information</a></li>
+        <li><a href="https://www.drupal.org/docs/8/api/configuration-api/configuration-storage-in-drupal-8" target="_blank">https://www.drupal.org/docs/8/api/configuration-api/configuration-storage-in-drupal-8</a></li>
+        <li><a href="https://antistatique.net/en/we/blog/2016/06/14/drupal-8-differences-between-configuration-api-state-api" target="_blank">https://antistatique.net/en/we/blog/2016/06/14/drupal-8-differences-between-configuration-api-state-api</a></li>
+        <li><a href="https://www.valuebound.com/resources/blog/a-beginners-guide-to-caching-drupal-8" target="_blank">https://www.valuebound.com/resources/blog/a-beginners-guide-to-caching-drupal-8</a></li>
+      </ul>
     </section>
 
   </div>
